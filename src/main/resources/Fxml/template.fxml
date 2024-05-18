@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+
+<BorderPane fx:id="root" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.martincorp.Interface.TemplateController">
+   <top>
+      <MenuBar BorderPane.alignment="CENTER">
+        <menus>
+            <Menu fx:id="backMenu" mnemonicParsing="false">
+               <graphic>
+                  <Label fx:id="backText">
+                     <graphic>
+                        <ImageView fx:id="backView" fitHeight="17.0" fitWidth="17.0" pickOnBounds="true" preserveRatio="true" />
+                     </graphic>
+                  </Label>
+               </graphic>
+            </Menu>
+          <Menu mnemonicParsing="false" text="Chats">
+            <items>
+              <MenuItem fx:id="newChatItem" mnemonicParsing="false" text="Nuevo chat" />
+                  <MenuItem fx:id="searchChatItem" mnemonicParsing="false" text="Buscar Chat" />
+            </items>
+          </Menu>
+          <Menu mnemonicParsing="false" text="Grupos">
+            <items>
+              <MenuItem fx:id="newGroupItem" mnemonicParsing="false" text="Nuevo grupo" />
+                  <MenuItem fx:id="searchGroupItem" mnemonicParsing="false" text="Buscar grupo" />
+            </items>
+          </Menu>
+          <Menu mnemonicParsing="false" text="Ayuda">
+            <items>
+              <MenuItem fx:id="settingsItem" mnemonicParsing="false" text="Opciones" />
+                  <MenuItem fx:id="closeItem" mnemonicParsing="false" text="Cerrar sesión" />
+                  <MenuItem fx:id="aboutItem" mnemonicParsing="false" text="Acerca de" />
+            </items>
+          </Menu>
+        </menus>
+      </MenuBar>
+   </top>
+</BorderPane>
