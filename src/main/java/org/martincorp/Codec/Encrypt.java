@@ -23,6 +23,7 @@ import java.util.Random;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
@@ -34,6 +35,8 @@ public class Encrypt {
     //Variables:
     private MessageDigest hasher;
     private SecretKeyFactory skf;
+    private KeyPairGenerator pairGen;
+    private KeyGenerator grpGen;
     private int key_length;
 
     private static final Random RANDOM = new SecureRandom();
@@ -42,52 +45,15 @@ public class Encrypt {
 
 
     //Builder:
-      //So just in case anyone wants to secure change how this works/encrypts, I've left this ready to use any of the basic options provided by the standard Java libraries:
-      // -1 - SHA-1, really, don't use this unless it doesn't matter if someones reverses this encryption.
-      // 0 - MD5, the classic and unmatched MD5.
-      // 1 - SHA-224, all of this are on the SHA2 standard.
-      // 2 - SHA-256, most used and perfectly fine.
-      // 3 - SHA-384
-      // 4 - SHA-512
     public Encrypt(int mode){
         try{
-            switch(mode){
-                case -1:
-                    //Why are you doing this to yourself?
-                    hasher = MessageDigest.getInstance("SHA-1");
-                    skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
-                    key_length = 160;
-                    break;
-                case 0:
-                    hasher = MessageDigest.getInstance("MD5");
-                    skf = SecretKeyFactory.getInstance("PBEWithMD5AndTripleDES");
-                    key_length = 128;
-                    break;
-                case 1:
-                    hasher = MessageDigest.getInstance("SHA-224");
-                    skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA224");
-                    key_length = 224;
-                    break;
-                case 2:
-                    hasher = MessageDigest.getInstance("SHA-256");
-                    skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-                    key_length = 256;
-                    break;
-                case 3:
-                    hasher = MessageDigest.getInstance("SHA-384");
-                    skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA384");
-                    key_length = 384;
-                    break;
-                case 4:
-                    hasher = MessageDigest.getInstance("SHA-512");
-                    skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512");
-                    key_length = 512;
-                    break;
-            }
+            hasher = MessageDigest.getInstance("SHA-512");
+            skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512");
+            key_length = 512;
         }
         catch(NoSuchAlgorithmException nsae){
             nsae.printStackTrace();
-            GUI.launchMessage(2, "Error de encriptación", "Ha ocurrido un problema al iniciar el módulo de protección de contraseñas.");
+            GUI.launchMessage(2, "Error de seguridad", "Ha ocurrido un problema al iniciar el módulo de protección de contraseñas.");
         }
     }
 
@@ -196,11 +162,11 @@ public class Encrypt {
     //RSA related methods:
     public byte[] generateNewPair(){
         try{
-            KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
-            gen.initialize(KEYSIZE);
-            KeyPair pair = gen.generateKeyPair();
+            pairGen = KeyPairGenerator.getInstance("RSA");
+            pairGen.initialize(KEYSIZE);
+            KeyPair pair = pairGen.generateKeyPair();
 
-            //TODO: vale, ahí una cosa en la clase Cipher llamada wrap y unwrap de keys, puede que sea una manera de ofuscar esta clave privada.
+            //TODO: vale, hay una cosa en la clase Cipher llamada wrap y unwrap de keys, puede que sea una manera de ofuscar esta clave privada.
             OutputStream os = new FileOutputStream(new File("conf.conf"));
             os.write(Base64.getEncoder().encode(pair.getPrivate().getEncoded()));
 
@@ -307,6 +273,21 @@ public class Encrypt {
         catch(IOException ioe){
             ioe.printStackTrace();
             GUI.launchMessage(2, "Error de lectura", "No se ha podido leer el archivo seleccionado.\n\n" + ioe.getMessage());
+            return null;
+        }
+    }
+
+    //AES related methods:
+    public byte[] generateNewKey(){
+        try{
+            grpGen = KeyGenerator.getInstance("AES");
+            grpGen.init(KEYSIZE);
+
+            return grpGen.generateKey().getEncoded();
+        }
+        catch(NoSuchAlgorithmException nsae){
+            nsae.printStackTrace();
+            GUI.launchMessage(2, null, null);
             return null;
         }
     }
