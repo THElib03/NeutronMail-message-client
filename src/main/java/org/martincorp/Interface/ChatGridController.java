@@ -14,6 +14,7 @@ import org.martincorp.Codec.Encrypt;
 import org.martincorp.Database.MessagerActions;
 import org.martincorp.Model.BarMessage;
 import org.martincorp.Model.Chat;
+import org.martincorp.Model.Employee;
 import org.martincorp.Model.Group;
 import org.martincorp.Model.Message;
 
@@ -45,7 +46,7 @@ public class ChatGridController {
 
     //Other variables:
     private static MessagerActions db = new MessagerActions();
-    private Encrypt enc = new Encrypt(4);
+    private Encrypt enc = new Encrypt();
     private Stage window;
 
     private DateTimeFormatter shortFormatter = DateTimeFormatter.ofPattern("HH:mm");
@@ -57,6 +58,7 @@ public class ChatGridController {
 
     private static Chat chat;
     private static Group group;
+    private static ArrayList<Employee> chatUsers;
     private static Boolean chatMode = null;
     private static int offset = 0;
     private static List<BarMessage> messageBar = new ArrayList<BarMessage>();
@@ -161,6 +163,7 @@ public class ChatGridController {
         while(ite.hasNext()){
             Message message = ite.next();
             BorderPane messBox = new BorderPane();
+            GridPane messGrid = new GridPane();
             AnchorPane emptyBox = new AnchorPane();
 
             LocalDateTime aproxNow = LocalDateTime.ofEpochSecond(System.currentTimeMillis() / 1000, 0, OffsetDateTime.now().getOffset());

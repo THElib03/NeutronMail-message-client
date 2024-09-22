@@ -21,7 +21,7 @@ public class LoggerActions {
     //Builder:
     public LoggerActions(){
         bridge = new LoggerBridge();
-        enc = new Encrypt(4);
+        enc = new Encrypt();
     }
 
     //Methods:

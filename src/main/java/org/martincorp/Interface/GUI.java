@@ -36,7 +36,7 @@ public class GUI extends Application{
         //Window launch:
         URL iconURL = getClass().getResource("/Img/icon.png");
         window.getIcons().add(new Image(iconURL.toExternalForm()));
-        window.setTitle("Administrador de Empleados NeutronMail");
+        window.setTitle("NeutronMail");
         //Window size:
         window.setMinWidth(640);
         window.setMaxWidth(640);

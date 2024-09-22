@@ -42,10 +42,9 @@ public class Encrypt {
     private static final Random RANDOM = new SecureRandom();
     private static final int ITERATIONS = 10000;
     private static final int KEYSIZE = 4096;
-
-
+    
     //Builder:
-    public Encrypt(int mode){
+    public Encrypt(){
         try{
             hasher = MessageDigest.getInstance("SHA-512");
             skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512");
@@ -90,10 +89,8 @@ public class Encrypt {
     /**
      * Returns a salted and hashed password using the provided hash. (provided by 'assylias' from stackoverflow.com, check project documentation for links and info)<br>
      * Note - side effect: the password is destroyed (the char[] is filled with zeros)
-     *
      * @param password the password to be hashed.
      * @param salt     a 16 bytes salt, ideally obtained with the getNextSalt method. (Changed to 32).
-     *
      * @return the hashed password with a pinch of salt.
      */
     public byte[] saltedHash(char[] password, byte[] salt){
@@ -116,11 +113,10 @@ public class Encrypt {
     /**
      * Returns true if the given password and salt match the hashed value, false otherwise.<br>
      * Note - side effect: the password is destroyed (the char[] is filled with zeros)
-     *
      * @param password     the password to check
      * @param salt         the salt used to hash the password
      * @param expectedHash the expected hashed value of the password
-     *
+
      * @return true if the given password and salt match the hashed value, false otherwise
      */
     public boolean checkPassword(char[] password, byte[] salt, byte[] expectedHash){
@@ -137,9 +133,7 @@ public class Encrypt {
 
     /**
      * Generates a random password of a given length, using letters and digits.
-     *
      * @param length the length of the password
-     *
      * @return a random password
      */
     public static String generateRandomPassword(int length) {
@@ -281,7 +275,7 @@ public class Encrypt {
     public byte[] generateNewKey(){
         try{
             grpGen = KeyGenerator.getInstance("AES");
-            grpGen.init(KEYSIZE);
+            grpGen.init(256);
 
             return grpGen.generateKey().getEncoded();
         }

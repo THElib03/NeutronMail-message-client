@@ -109,7 +109,7 @@ public class TemplateController {
 
             URL iconURL = GUI.class.getResource("/Img/icon.png");
             newWindow.getIcons().add(new Image(iconURL.toExternalForm()));
-            newWindow.setTitle("NeutronMail para administradores");
+            newWindow.setTitle("NeutronMail");
             newWindow.initModality(Modality.NONE);
             newWindow.setScene(startScene);
             newWindow.show();
@@ -134,8 +134,8 @@ public class TemplateController {
             ChatGridController cgCont = chtLoader.getController();
             
             Platform.runLater( () -> cleanTemplate());
-            Platform.runLater( () -> templateRoot.setLeft(sclRoot));
-            Platform.runLater( () -> templateRoot.setCenter(chtRoot));
+            Platform.runLater( () -> setLeft(sclRoot));
+            Platform.runLater( () -> setRight(chtRoot));
         }
         catch(IOException ioe){
             ioe.printStackTrace();

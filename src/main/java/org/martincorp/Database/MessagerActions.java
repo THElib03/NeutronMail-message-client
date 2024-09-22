@@ -1,7 +1,9 @@
 package org.martincorp.Database;
 
+import java.beans.Statement;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.sql.PreparedStatement;
@@ -10,7 +12,9 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 import org.martincorp.Codec.Encrypt;
@@ -29,7 +33,7 @@ public class MessagerActions {
     public static int user;
     private int chatOffset = 0;
     private MessagerBridge bridge;
-    private Encrypt enc = new Encrypt(4);
+    private Encrypt enc = new Encrypt();
 
     //SQL variables:
     private final String EMP_BY_ID = "SELECT * FROM employee JOIN `active` ON (employee.emp_id=`active`.act_emp) WHERE emp_id = ?";
@@ -50,12 +54,13 @@ public class MessagerActions {
     private final String USER_CHATS = "SELECT * FROM chat WHERE chat_user1 = ? OR chat_user2 = ?";
 
     private final String SEND_MESS = "INSERT INTO message VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0)";
-    private final String CHAT_MESS = "SELECT * FROM message WHERE mes_chat = ? ORDER BY mes_id DESC LIMIT 25 OFFSET ? ";
-    private final String GROUP_MESS = "SELECT * FROM message WHERE mes_group = ? ORDER BY mes_id DESC LIMIT 25 OFFSET ?";
+    private final String CHAT_MESS = "SELECT mes_id, mes_chat, mes_sender, mes_message, mes_filename, IF(mes_file == 'empty', FALSE, TRUE) AS hasFile, mes_unread FROM message WHERE mes_chat = ? ORDER BY mes_id DESC LIMIT 25 OFFSET ? ";
+    private final String GROUP_MESS = "SELECT mes_id, mes_group, mes_sender, mes_message, mes_filename, IF(mes_file == 'empty', FALSE, TRUE) AS hasFile, mes_unread FROM message WHERE mes_group = ? ORDER BY mes_id DESC LIMIT 25 OFFSET ?";
     private final String CHAT_AVAILABLE = "SELECT COUNT(*) FROM chat WHERE mes_chat = ? ORDER BY mes_id LIMIT 25 OFFSET ?";
     private final String GROUP_AVAILABLE = "SELECT COUNT(*) FROM chat WHERE mes_group = ? ORDER BY mes_id LIMIT 25 OFFSET ?";
-    private final String LAST_MESS_CHAT = "SELECT ANY_VALUE(mes_chat), ANY_VALUE(mes_sender), ANY_VALUE(mes_filename), MAX(mes_sendTime) FROM message WHERE mes_chat = ?";
-    private final String LAST_MESS_GROUP = "SELECT ANY_VALUE(mes_group), ANY_VALUE(mes_sender), ANY_VALUE(mes_filename), MAX(mes_sendTime) FROM message WHERE mes_group = ?";
+    private final String LAST_MESS_GROUP = "WITH chat_messages AS(SELECT mes_group, mes_sender, mes_message, mes_filename, mes_sendTime, COUNT(CASE WHEN mes_status = 0 THEN 1 ELSE NULL END) AS unread_mes, ROW_NUMBER() OVER (PARTITION BY mes_group ORDER BY mes_sendTime DESC) AS rn FROM message WHERE mes_group IN (SELECT grp_id FROM publicgroup) GROUP BY mes_group, mes_sender, mes_message, mes_filename, mes_sendTime) SELECT cm.mes_group, cm.mes_sender, cm.mes_message, cm.mes_filename, cm.mes_sendTime, cm.unread_mes, grp_name, emp_alias, CONCAT_WS(' ', emp_fname, emp_lname) FROM chat_messages cm JOIN publicgroup ON (cm.mes_group = publicgroup.grp_id) JOIN employee ON (cm.mes_sender = employee.emp_id) WHERE grp_id IN (SELECT gru_group FROM groupuser WHERE gru_user = 2) AND cm.rn = 1";
+    private final String LAST_MESS_CHAT =  "WITH chat_messages AS(SELECT mes_chat, mes_sender, mes_message, mes_filename, mes_sendTime, COUNT(CASE WHEN mes_status = 0 THEN 1 ELSE NULL END) AS unread_mes, ROW_NUMBER() OVER (PARTITION BY mes_chat ORDER BY mes_sendTime DESC) AS rn FROM message WHERE mes_chat IN (SELECT chat_id FROM chat) GROUP BY mes_chat, mes_sender, mes_message, mes_filename, mes_sendTime) SELECT cm.mes_chat, cm.mes_sender, cm.mes_message, cm.mes_filename, cm.mes_sendTime, cm.unread_mes, emp_alias, CONCAT_WS(' ', emp_fname, emp_lname) FROM chat_messages cm JOIN chat ON (cm.mes_chat = chat.chat_id) JOIN employee ON (cm.mes_sender = employee.emp_id) WHERE (chat_user1 = 2 OR chat_user2 = 2) AND cm.rn = 1";
+    private final String LAST_MESS = "WITH chat_messages AS(SELECT CASE WHEN mes_chat IS NULL THEN FALSE ELSE TRUE END AS `mode`, mes_chat, mes_group, mes_sender, mes_message, mes_filename, mes_sendTime, COUNT(CASE WHEN mes_status = 0 THEN 1 ELSE NULL END) AS unread_mes, ROW_NUMBER() OVER (PARTITION BY mes_group ORDER BY mes_sendTime DESC) AS rn FROM message GROUP BY mes_chat, mes_group, mes_sender, mes_message, mes_filename, mes_sendTime) SELECT `mode`, mes_chat, mes_group, mes_sender, mes_message, mes_filename, mes_sendTime, unread_mes, IF(`mode` = 0, grp_name, NULL) AS grp_name, emp_alias, CONCAT_WS(' ', emp_fname, emp_lname) FROM chat_messages LEFT JOIN publicgroup ON (mes_group = publicgroup.grp_id) LEFT JOIN employee ON (mes_sender = employee.emp_id) LEFT JOIN chat ON (mes_chat = chat.chat_id) WHERE (mes_group IN (SELECT gru_group FROM groupuser WHERE gru_user = ?) OR (chat_user1 = ? OR chat_user2 = ?)) AND rn = 1 GROUP BY mes_chat, mes_group, mes_sender, mes_message, mes_filename, mes_sendTime";
     private final String UNREAD_CHAT = "SELECT COUNT(mes_status) FROM message WHERE mes_status = 0 AND mes_chat = ?";
     private final String UNREAD_GROUP = "SELECT COUNT(mes_status) FROM message WHERE mes_status = 0 AND mes_group = ?";
     private final String NEW_MESS = "INSERT INTO message(mes_chat, mes_sender, mes_receiver, mes_filename, mes_message) VALUES(?, ?, ?, ?, ?)";
@@ -292,7 +297,7 @@ public class MessagerActions {
     }
 
     /**
-     * The neme is confusing but is to look for a the other employee you're talking to in a chat.
+     * The name is confusing but is to look for a the other employee you're talking to in a chat.
      * @since 1.0
      * @param id id of the chat which we need the other employee
      * @return returns the employee of the given chat id
@@ -388,7 +393,7 @@ public class MessagerActions {
             ResultSet res = messSta.executeQuery();
 
             while(res.next()) {
-                messages.add(new Message(mode ? res.getInt(2) : res.getInt(3), mode, res.getInt(4), res.getInt(5), res.getString(6), res.getString(7), res.getTimestamp(8).toLocalDateTime()));
+                messages.add(new Message(mode ? res.getInt(2) : res.getInt(3), mode, res.getInt(4), res.getInt(5), res.getString(6), res.getString(7), res.getBoolean(8), res.getTimestamp(9).toLocalDateTime()));
             }
         }
         catch(SQLException sqle){
@@ -398,7 +403,7 @@ public class MessagerActions {
         }
 
         if(messages.size() == 0){
-            messages.add(new Message(1, mode, 1, 1, "No se ha mandado ningún mensaje aún", null, LocalDateTime.now()));
+            messages.add(new Message(1, mode, 1, 1, "No se ha mandado ningún mensaje aún", null, false, LocalDateTime.now()));
         }
 
         return messages;
@@ -433,32 +438,70 @@ public class MessagerActions {
         }
     }
 
-    public Message getLastMess(int chatId, boolean mode){
-        PreparedStatement lastSta;
-        Message lastMessage = new Message();
+    /**
+     * Fetches and returns the last message from every chat or group the user has together with the info of the user or group related to it.
+     * @return An ArrayList containing multiple instances of the classes Message and Employee and in some cases the class Group too. 
+     */
+    public ArrayList<Object> getLastMess(){
+        ArrayList<Message> fakeList = new ArrayList<Message>();
+        ArrayList<Object> lastList = new ArrayList<Object>();
 
         try{
-            if(mode){
-                lastSta = bridge.conn.prepareStatement(LAST_MESS_CHAT);
-            }
-            else{
-                lastSta = MessagerBridge.conn.prepareStatement(LAST_MESS_GROUP);
-            }
-
-            lastSta.setInt(1, chatId);
-
+            PreparedStatement lastSta = bridge.conn.prepareStatement(LAST_MESS, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            lastSta.setInt(1, user);
+            lastSta.setInt(2, user);
+            lastSta.setInt(3, user);
             ResultSet res = lastSta.executeQuery();
-            res.next();
 
-            lastMessage.setChat(res.getInt(1));
-            if(res.wasNull()){
-                return null;
+            while(res.next()){
+                Message fakeMess = new Message();
+                fakeMess.setChat(res.getRow());
+                fakeMess.setSendTime(res.getTimestamp(7).toLocalDateTime());
+
+                fakeList.add(fakeMess);
             }
 
-            lastMessage.setMode(mode);
-            lastMessage.setSender(res.getInt(2));
-            lastMessage.setFilename(res.getString(3));
-            lastMessage.setSendTime(res.getTimestamp(4).toLocalDateTime());
+            Collections.sort(fakeList, Collections.reverseOrder());
+
+            Iterator<Message> ite = fakeList.iterator();
+                
+            while(ite.hasNext()){
+                Message lastMessage = new Message();
+                Employee lastEmp = new Employee();
+                Group lastGroup = new Group();
+
+                res.absolute(ite.next().getChat());
+
+                if(res.getBoolean(1)){
+                    lastMessage.setMode(true);
+                    lastMessage.setChat(res.getInt(2));
+                }
+                else{
+                    lastMessage.setMode(false);
+                    lastMessage.setChat(res.getInt(3));
+                }
+
+                lastMessage.setSender(res.getInt(4));
+                lastMessage.setMessage(res.getString(5));
+                lastMessage.setFilename(res.getString(6));
+                lastMessage.setSendTime(res.getTimestamp(7).toLocalDateTime());
+                lastList.add(lastMessage);
+
+                lastEmp.setAlias(res.getString(10));
+                lastEmp.setName(res.getString(11));
+                lastList.add(lastEmp);
+
+                if(!res.getBoolean(1)){
+                    lastGroup.setId(res.getInt(3));
+                    System.out.println(res.getString(9));
+                    lastGroup.setName(res.getString(9));
+                    lastList.add(lastGroup);
+                }
+
+                lastList.add(res.getInt(8));
+            }
+
+            System.out.println("adffafaf");
         }
         catch(SQLException sqle){
             sqle.printStackTrace();
@@ -466,7 +509,7 @@ public class MessagerActions {
             bridge.checkConnection(true);
         }
 
-        return lastMessage;
+        return lastList;
     }
     
     /**

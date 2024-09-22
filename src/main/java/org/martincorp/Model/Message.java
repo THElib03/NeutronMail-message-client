@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 public class Message implements Comparable<Message>{
     //Variables:
     private int chat, sender, receiver;
-    private boolean mode;
+    private boolean mode, hasFile;
     private String message, filename;
     private LocalDateTime sendTime;
 
@@ -23,10 +23,11 @@ public class Message implements Comparable<Message>{
      * @param s employee ID of the message sender
      * @param r employee ID of the message receiver
      * @param m message string sent
+     * @param h whether the message comes with a file or not
      * @param fn filename of the file sent
      * @param t date and time when the message was sent
      */
-    public Message(int c, boolean mode, int s, int r, String m, String fn, LocalDateTime t){
+    public Message(int c, boolean mode, int s, int r, String m, String fn, boolean h, LocalDateTime t){
         //DONE: rewrite Message in the DB to have a collumn for a string written as the message body or text, the should be optional now and this would allow proper comunication
           // i can't just name the file like the text.
         this.chat = c;
@@ -35,6 +36,7 @@ public class Message implements Comparable<Message>{
         this.receiver = r;
         this.message = m;
         this.filename = fn;
+        this.hasFile = h;
         this.sendTime = t;
     }
 
@@ -74,6 +76,10 @@ public class Message implements Comparable<Message>{
         return filename;
     }
 
+    public boolean getHasFile(){
+        return hasFile;
+    }
+
     public LocalDateTime getSendTime(){
         return sendTime;
     }
@@ -100,6 +106,10 @@ public class Message implements Comparable<Message>{
 
     public void setFilename(String f){
         this.filename = f;
+    }
+
+    public void setHasFile(boolean h){
+        this.hasFile = h;
     }
 
     public void setSendTime(LocalDateTime t){

@@ -102,7 +102,7 @@ public class SettingsParser {
       /*As a warning for any new dev in this section, JSON works in UTF-8 text enconding, so make sure to read/write that way, there's an easy example in many methods of the first version of the parse.
         Extracted from (23/08/2023):
         --WTF is this, does the same with 'ñ' & 'á'. JsonParser might have something but JsonStreamParser automatically creates JsonElements from the Reader. FUUUUUUCK.
-        --Ok, so i just needed to add the proper charset the file readers, easiest way seems to be StandardCharsets.'CHARSET', BufferedReader/Writer are a viable option again.
+        --Ok, so i just needed to add the proper charset the file readers, easiest way seems to be StandardCharsets.<CHARSET>, BufferedReader/Writer are a viable option again.
       */
     public void newProfile(String n){
         Gson g = new Gson();
