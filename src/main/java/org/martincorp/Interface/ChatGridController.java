@@ -95,6 +95,7 @@ public class ChatGridController {
 
     //Methods:
     public void extSetup(int newId, boolean mode){
+        // chatUsers = db.getChatUser(newId, mode);
         //DONE: create static list that saves the contents of the file bottom bar.
         Iterator<BarMessage> ite = messageBar.iterator();
 
@@ -123,7 +124,7 @@ public class ChatGridController {
                         }
                         else{
                             chat = null;
-                            group = db.getGroupById(newId);
+                            // group = db.getGroupById(newId);
                         }
 
                         messageText.setText(message.getMessage());

@@ -1,9 +1,7 @@
 package org.martincorp.Database;
 
-import java.beans.Statement;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.sql.PreparedStatement;
@@ -58,8 +56,6 @@ public class MessagerActions {
     private final String GROUP_MESS = "SELECT mes_id, mes_group, mes_sender, mes_message, mes_filename, IF(mes_file == 'empty', FALSE, TRUE) AS hasFile, mes_unread FROM message WHERE mes_group = ? ORDER BY mes_id DESC LIMIT 25 OFFSET ?";
     private final String CHAT_AVAILABLE = "SELECT COUNT(*) FROM chat WHERE mes_chat = ? ORDER BY mes_id LIMIT 25 OFFSET ?";
     private final String GROUP_AVAILABLE = "SELECT COUNT(*) FROM chat WHERE mes_group = ? ORDER BY mes_id LIMIT 25 OFFSET ?";
-    private final String LAST_MESS_GROUP = "WITH chat_messages AS(SELECT mes_group, mes_sender, mes_message, mes_filename, mes_sendTime, COUNT(CASE WHEN mes_status = 0 THEN 1 ELSE NULL END) AS unread_mes, ROW_NUMBER() OVER (PARTITION BY mes_group ORDER BY mes_sendTime DESC) AS rn FROM message WHERE mes_group IN (SELECT grp_id FROM publicgroup) GROUP BY mes_group, mes_sender, mes_message, mes_filename, mes_sendTime) SELECT cm.mes_group, cm.mes_sender, cm.mes_message, cm.mes_filename, cm.mes_sendTime, cm.unread_mes, grp_name, emp_alias, CONCAT_WS(' ', emp_fname, emp_lname) FROM chat_messages cm JOIN publicgroup ON (cm.mes_group = publicgroup.grp_id) JOIN employee ON (cm.mes_sender = employee.emp_id) WHERE grp_id IN (SELECT gru_group FROM groupuser WHERE gru_user = 2) AND cm.rn = 1";
-    private final String LAST_MESS_CHAT =  "WITH chat_messages AS(SELECT mes_chat, mes_sender, mes_message, mes_filename, mes_sendTime, COUNT(CASE WHEN mes_status = 0 THEN 1 ELSE NULL END) AS unread_mes, ROW_NUMBER() OVER (PARTITION BY mes_chat ORDER BY mes_sendTime DESC) AS rn FROM message WHERE mes_chat IN (SELECT chat_id FROM chat) GROUP BY mes_chat, mes_sender, mes_message, mes_filename, mes_sendTime) SELECT cm.mes_chat, cm.mes_sender, cm.mes_message, cm.mes_filename, cm.mes_sendTime, cm.unread_mes, emp_alias, CONCAT_WS(' ', emp_fname, emp_lname) FROM chat_messages cm JOIN chat ON (cm.mes_chat = chat.chat_id) JOIN employee ON (cm.mes_sender = employee.emp_id) WHERE (chat_user1 = 2 OR chat_user2 = 2) AND cm.rn = 1";
     private final String LAST_MESS = "WITH chat_messages AS(SELECT CASE WHEN mes_chat IS NULL THEN FALSE ELSE TRUE END AS `mode`, mes_chat, mes_group, mes_sender, mes_message, mes_filename, mes_sendTime, COUNT(CASE WHEN mes_status = 0 THEN 1 ELSE NULL END) AS unread_mes, ROW_NUMBER() OVER (PARTITION BY mes_group ORDER BY mes_sendTime DESC) AS rn FROM message GROUP BY mes_chat, mes_group, mes_sender, mes_message, mes_filename, mes_sendTime) SELECT `mode`, mes_chat, mes_group, mes_sender, mes_message, mes_filename, mes_sendTime, unread_mes, IF(`mode` = 0, grp_name, NULL) AS grp_name, emp_alias, CONCAT_WS(' ', emp_fname, emp_lname) FROM chat_messages LEFT JOIN publicgroup ON (mes_group = publicgroup.grp_id) LEFT JOIN employee ON (mes_sender = employee.emp_id) LEFT JOIN chat ON (mes_chat = chat.chat_id) WHERE (mes_group IN (SELECT gru_group FROM groupuser WHERE gru_user = ?) OR (chat_user1 = ? OR chat_user2 = ?)) AND rn = 1 GROUP BY mes_chat, mes_group, mes_sender, mes_message, mes_filename, mes_sendTime";
     private final String UNREAD_CHAT = "SELECT COUNT(mes_status) FROM message WHERE mes_status = 0 AND mes_chat = ?";
     private final String UNREAD_GROUP = "SELECT COUNT(mes_status) FROM message WHERE mes_status = 0 AND mes_group = ?";
@@ -164,112 +160,6 @@ public class MessagerActions {
             bridge.checkConnection(true);
         }
     }
-    
-    public List<Group> getUserGroups(){
-        PreparedStatement groupSta;
-        List<Group> groups = new ArrayList<Group>();
-
-        try{
-            groupSta = bridge.conn.prepareStatement(USER_GROUPS);
-            groupSta.setInt(1, user);
-            ResultSet res = groupSta.executeQuery();
-
-            while(res.next()){
-                groups.add(new Group(res.getInt(1), res.getInt(4), res.getString(2)));
-            }
-        }
-        catch(SQLException sqle){
-            sqle.printStackTrace();
-            GUI.launchMessage(2, "Error de base de datos", "Ha ocurrido un error inesperado durante la comunicación\ncon la base de datos. Inténtelo de nuevo en unos instantes:\n\n" + sqle.getMessage());
-            bridge.checkConnection(true);
-        }
-
-        return groups;
-    }
-
-    public List<Employee> getGroupUsers(int id){
-        List<Employee> emps = new ArrayList<Employee>();
-        PreparedStatement grpSta;
-
-        try{
-            grpSta = bridge.conn.prepareStatement(GROUP_USERS);
-            grpSta.setInt(1, id);
-            ResultSet res = grpSta.executeQuery();
-
-            while(res.next()){
-                emps.add(new Employee(res.getInt(1), res.getString(2) + " " + res.getString(3), res.getDate(4), res.getDate(5), res.getString(6), res.getString(7), res.getBoolean(9)));
-            }
-        }
-        catch(SQLException sqle){
-            sqle.printStackTrace();
-            GUI.launchMessage(2, "Error de base de datos", "Ha ocurrido un error inesperado durante la comunicación\ncon la base de datos. Inténtelo de nuevo en unos instantes:\n\n" + sqle.getMessage());
-            bridge.checkConnection(true);
-        }
-
-        if(emps.size() == 0){
-            emps.add(new Employee(0, "Información del empleado no encontrada", new Date(System.currentTimeMillis()), new Date(System.currentTimeMillis()), "", "", false));
-        }
-        return emps;
-    }
-
-    public Group getGroupById(int id){
-        Group grp = new Group();
-        PreparedStatement grpSta;
-
-        try{
-            grpSta = bridge.conn.prepareStatement(GROUP_BY_ID);
-        }
-        catch(SQLException sqle){
-            sqle.printStackTrace();
-            GUI.launchMessage(2, "Error de base de datos", "Ha ocurrido un error inesperado durante la comunicación\ncon la base de datos. Inténtelo de nuevo en unos instantes:\n\n" + sqle.getMessage());
-            bridge.checkConnection(true);
-        }
-
-        return grp;
-    }
-
-    public Group getGroupByName(String name){
-        Group grp = new Group();
-        PreparedStatement grpSta;
-
-        try{
-            grpSta = bridge.conn.prepareStatement(GROUP_BY_NAME);
-        }
-        catch(SQLException sqle){
-            sqle.printStackTrace();
-            GUI.launchMessage(2, "Error de base de datos", "Ha ocurrido un error inesperado durante la comunicación\ncon la base de datos. Inténtelo de nuevo en unos instantes:\n\n" + sqle.getMessage());
-            bridge.checkConnection(true);
-        }
-
-        return grp;
-    }
-
-    public List<Chat> getChats(){
-        List<Chat> chats = new ArrayList<Chat>();
-        PreparedStatement messSta;
-
-        try{
-            messSta = bridge.conn.prepareStatement(USER_CHATS);
-            messSta.setInt(1, user);
-            messSta.setInt(2, user);
-            ResultSet res = messSta.executeQuery();
-
-            while(res.next()){
-                chats.add(new Chat(res.getInt(1), res.getInt(2), res.getInt(3)));
-            }
-        }
-        catch(SQLException sqle){
-            sqle.printStackTrace();
-            GUI.launchMessage(2, "Error de base de datos", "Ha ocurrido un error inesperado durante la comunicación\ncon la base de datos. Inténtelo de nuevo en unos instantes:\n\n" + sqle.getMessage());
-            bridge.checkConnection(true);
-        }
-
-        if(chats.size() == 0){
-            chats.add(new Chat(1, 1, 1));
-        }
-
-        return chats;
-    }
 
     /**
      * Searches for the chat of a given id.
@@ -332,7 +222,7 @@ public class MessagerActions {
             messSta.setInt(3, user);
             //mes_receiver
             if(mode){
-                messSta.setInt(4, getChatUser(chat).getId());
+                // messSta.setInt(4, getChatUser(chat).getId());
             }
             else{
                 messSta.setNull(4, Types.INTEGER);
@@ -510,41 +400,6 @@ public class MessagerActions {
         }
 
         return lastList;
-    }
-    
-    /**
-     * Fetches the messages a user has not yet read from a specific personal chat or group.
-     * 
-     * @since 1.0
-     * @param chatId the id of the Chat which will be accessed
-     * @param mode indicates whether the chat belongs to a personal chat or a group
-     * @return returns an Integer with the amount of messages of chat left unread by the user
-     */
-    public int getUnreadMess(int chatId, boolean mode){
-        PreparedStatement unrSta;
-        int unread = 0;
-
-        try{
-            if(mode){
-                unrSta = MessagerBridge.conn.prepareStatement(UNREAD_CHAT);
-                unrSta.setInt(1, chatId);
-            }
-            else{
-                unrSta = MessagerBridge.conn.prepareStatement(UNREAD_GROUP);
-                unrSta.setInt(1, chatId);
-            }
-
-            ResultSet unrRes = unrSta.executeQuery();
-            unrRes.next();
-            unread = unrRes.getInt(1);
-        }
-        catch(SQLException sqle){
-            sqle.printStackTrace();
-            GUI.launchMessage(2, "Error de base de datos", "Ha ocurrido un error inesperado durante la comunicación\ncon la base de datos. Inténtelo de nuevo en unos instantes:\n\n" + sqle.getMessage());
-            bridge.checkConnection(true);
-        }
-        
-        return unread;
     }
 }
 
