@@ -44,6 +44,7 @@ public class Encrypt {
     private static final int KEYSIZE = 4096;
     
     //Builder:
+    @SuppressWarnings("CallToPrintStackTrace")
     public Encrypt(){
         try{
             hasher = MessageDigest.getInstance("SHA-512");
@@ -154,6 +155,7 @@ public class Encrypt {
     }
 
     //RSA related methods:
+    @SuppressWarnings("CallToPrintStackTrace")
     public byte[] generateNewPair(){
         try{
             pairGen = KeyPairGenerator.getInstance("RSA");
@@ -178,6 +180,7 @@ public class Encrypt {
         }
     }
 
+    @SuppressWarnings("CallToPrintStackTrace")
     public Key retrievePrivKey(){
         try{
             InputStream is = new FileInputStream(new File("conf.conf"));
@@ -191,6 +194,7 @@ public class Encrypt {
         }
     }
 
+    @SuppressWarnings("CallToPrintStackTrace")
     public boolean decrypt(byte[] file, String filename){
         try{
             Cipher ci = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
@@ -202,14 +206,9 @@ public class Encrypt {
             fos.close();
             return true;
         }
-        catch(NoSuchAlgorithmException nsae){
-            nsae.printStackTrace();
-            GUI.launchMessage(2, "Error de seguridad", "No se ha podido iniciar el módulo de seguridad.\n\n" + nsae.getMessage());
-            return false;
-        }
-        catch(NoSuchPaddingException nspe){
-            nspe.printStackTrace();
-            GUI.launchMessage(2, "Error de seguridad", "No se ha podido iniciar el módulo de seguridad.\n\n" + nspe.getMessage());
+        catch(NoSuchAlgorithmException | NoSuchPaddingException nse){
+            nse.printStackTrace();
+            GUI.launchMessage(2, "Error de seguridad", "No se ha podido iniciar el módulo de seguridad.\n\n" + nse.getMessage());
             return false;
         }
         catch(InvalidKeyException ike){
@@ -217,9 +216,9 @@ public class Encrypt {
             GUI.launchMessage(2, "Error de seguridad", "Las claves de seguridad no son correctas o están\ncorruptas, contecte con su administrador.");
             return false;
         }
-        catch(IllegalBlockSizeException ibse){
-            ibse.printStackTrace();
-            GUI.launchMessage(2, "Error de escritura", "No se ha podido guardar el archivo descargado.\n\n" + ibse.getMessage());
+        catch(IllegalBlockSizeException | IOException e){
+            e.printStackTrace();
+            GUI.launchMessage(2, "Error de escritura", "No se ha podido guardar el archivo descargado.\n\n" + e.getMessage());
             return false;
         }
         catch(BadPaddingException bpe){
@@ -227,26 +226,18 @@ public class Encrypt {
             GUI.launchMessage(2, "Error de seguridad", "No se ha podido desencriptar correctamente el\narchivo descargado.\n\n" + bpe.getMessage());
             return false;
         }
-        catch(IOException ioe){
-            ioe.printStackTrace();
-            GUI.launchMessage(2, "Error de escritura", "No se ha podido guardar el archivo descargado.\n\n" + ioe.getMessage());
-            return false;
-        }
     }
 
+    @SuppressWarnings("CallToPrintStackTrace")
     public byte[] encrypt(File file, Key pubKey){
         try{
             Cipher ci = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
             ci.init(Cipher.ENCRYPT_MODE, retrievePrivKey());
             return ci.doFinal(Files.readAllBytes(file.toPath()));
         }
-        catch(NoSuchAlgorithmException nsae){
-            nsae.printStackTrace();
-            GUI.launchMessage(2, "Error de seguridad", "No se ha podido iniciar el módulo de seguridad.\n\n" + nsae.getMessage());
-            return null;
-        }catch(NoSuchPaddingException nspe){
-            nspe.printStackTrace();
-            GUI.launchMessage(2, "Error de seguridad", "No se ha podido iniciar el módulo de seguridad.\n\n" + nspe.getMessage());
+        catch(NoSuchAlgorithmException | NoSuchPaddingException nse){
+            nse.printStackTrace();
+            GUI.launchMessage(2, "Error de seguridad", "No se ha podido iniciar el módulo de seguridad.\n\n" + nse.getMessage());
             return null;
         }
         catch(IllegalBlockSizeException ibse){

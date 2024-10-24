@@ -1,6 +1,7 @@
 package org.martincorp.Interface;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.Optional;
 
@@ -16,12 +17,17 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonType;
 import javafx.scene.image.Image;
+import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
 public class GUI extends Application{
     //Variables:
     private static LoggerBridge lBridge;
     private Scene loginScene;
+    public static Font segoe;
+    public static Font segoeBold;
+    public static Font segoeItalic;
+    public static Font segoeBoldItalic;
 
     public static void main(String[] args) {
         launch(args);
@@ -30,8 +36,12 @@ public class GUI extends Application{
     @Override
     public void start(Stage window){
         //I can't do these in main() 'cause they use launchMessage() and that one needs a JavaFX thread:
-        SettingsParser settingsLoad = new SettingsParser("settings.set");
+        // SettingsParser settingsLoad = new SettingsParser("settings.set");
         startLoginDb();
+        segoe = Font.loadFont(getClass().getResourceAsStream("/Font/Segoe UI.ttf"), 14);
+        segoeBold = Font.loadFont(getClass().getResourceAsStream("/Font/Segoe UI Bold.ttf"), 14);
+        segoeItalic = Font.loadFont(getClass().getResourceAsStream("/Font/Segoe UI Italic.ttf"), 14);
+        segoeBoldItalic = Font.loadFont(getClass().getResourceAsStream("/Font/Segoe UI Bold Italic.ttf"), 14);
 
         //Window launch:
         URL iconURL = getClass().getResource("/Img/icon.png");

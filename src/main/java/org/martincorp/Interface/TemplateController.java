@@ -30,7 +30,7 @@ public class TemplateController {
     @FXML MenuItem searchChatItem;
     @FXML MenuItem newGroupItem;
     @FXML MenuItem searchGroupItem;
-    @FXML MenuItem settingsItem;
+    // @FXML MenuItem settingsItem;
     @FXML MenuItem closeItem;
     @FXML MenuItem aboutItem;
 

@@ -3,7 +3,6 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.CheckBox?>
-<?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.Tooltip?>
@@ -13,20 +12,20 @@
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.martincorp.Interface.ChatGridController">
+<BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.martincorp.Interface.ChatGridController">
    <bottom>
-      <GridPane prefHeight="40.0" BorderPane.alignment="CENTER">
+      <GridPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="40.0" BorderPane.alignment="CENTER">
         <columnConstraints>
-            <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="55.0" prefWidth="400.0" />
-            <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="15.0" prefWidth="150.0" />
-          <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="20.0" prefWidth="180.0" />
-          <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="10.0" prefWidth="100.0" />
+            <ColumnConstraints hgrow="SOMETIMES" maxWidth="1.7976931348623157E308" minWidth="10.0" percentWidth="55.0" prefWidth="100.0" />
+            <ColumnConstraints hgrow="SOMETIMES" maxWidth="1.7976931348623157E308" minWidth="10.0" percentWidth="15.0" prefWidth="100.0" />
+          <ColumnConstraints hgrow="SOMETIMES" maxWidth="1.7976931348623157E308" minWidth="10.0" percentWidth="20.0" prefWidth="100.0" />
+          <ColumnConstraints hgrow="SOMETIMES" maxWidth="1.7976931348623157E308" minWidth="10.0" percentWidth="10.0" prefWidth="100.0" />
         </columnConstraints>
         <rowConstraints>
           <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
         </rowConstraints>
          <children>
-            <TextField fx:id="titleText" promptText="Mensaje">
+            <TextField fx:id="messageText" maxWidth="1.7976931348623157E308" promptText="Mensaje">
                <GridPane.margin>
                   <Insets left="20.0" right="20.0" />
                </GridPane.margin>
@@ -34,15 +33,15 @@
                   <Font name="Segoe UI" size="14.0" />
                </font>
             </TextField>
-            <Button fx:id="fileBut" mnemonicParsing="false" onKeyPressed="#fileButEnter" onMouseClicked="#selectFile" text="Elegir archivo" GridPane.columnIndex="1" GridPane.halignment="CENTER">
+            <Button fx:id="fileBut" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onKeyPressed="#fileButEnter" onMouseClicked="#selectFile" text="Elegir archivo" GridPane.columnIndex="1" GridPane.halignment="CENTER">
                <font>
                   <Font name="Segoe UI" size="14.0" />
                </font>
                <GridPane.margin>
-                  <Insets />
+                  <Insets left="15.0" right="15.0" />
                </GridPane.margin>
             </Button>
-            <CheckBox fx:id="verifCheck" mnemonicParsing="false" prefHeight="28.0" text="Verificación de integridad" GridPane.columnIndex="2" GridPane.halignment="CENTER">
+            <CheckBox fx:id="verifCheck" maxWidth="1.7976931348623157E308" mnemonicParsing="false" prefHeight="28.0" text="Verificación de integridad" GridPane.columnIndex="2" GridPane.halignment="CENTER">
                <font>
                   <Font name="Segoe UI" size="14.0" />
                </font>
@@ -53,28 +52,24 @@
                   <Insets left="20.0" right="20.0" />
                </GridPane.margin>
             </CheckBox>
-            <Button fx:id="sendBut" mnemonicParsing="false" prefHeight="28.0" prefWidth="85.0" GridPane.columnIndex="3" GridPane.halignment="CENTER">
+            <Button fx:id="sendBut" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onMouseClicked="#sendMessage" prefHeight="28.0" text="Enviar" GridPane.columnIndex="3" GridPane.halignment="CENTER">
                <font>
                   <Font name="Segoe UI" size="14.0" />
                </font>
-               <graphic>
-                  <Label onKeyPressed="#sendButEnter" onMouseClicked="#sendMessage" text="Enviar">
-                     <font>
-                        <Font name="Segoe UI" size="14.0" />
-                     </font>
-                  </Label>
-               </graphic>
+               <GridPane.margin>
+                  <Insets left="15.0" right="15.0" />
+               </GridPane.margin>
             </Button>
          </children>
       </GridPane>
    </bottom>
    <center>
-      <ScrollPane fx:id="scrollPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" onScroll="#scrollCheck" BorderPane.alignment="CENTER">
+      <ScrollPane fx:id="scrollPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" BorderPane.alignment="CENTER">
          <content>
-            <GridPane fx:id="chatGrid" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
+            <GridPane fx:id="chatGrid" alignment="BOTTOM_CENTER" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
               <columnConstraints>
-                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="50.0" prefWidth="100.0" />
-                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="50.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="1.7976931348623157E308" minWidth="10.0" percentWidth="50.0" prefWidth="200.0" />
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="1.7976931348623157E308" minWidth="10.0" percentWidth="50.0" prefWidth="200.0" />
               </columnConstraints>
             </GridPane>
          </content>

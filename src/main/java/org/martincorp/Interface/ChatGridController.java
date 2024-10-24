@@ -8,7 +8,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Collections;
 
 import org.martincorp.Codec.Encrypt;
 import org.martincorp.Database.MessagerActions;
@@ -18,19 +17,28 @@ import org.martincorp.Model.Employee;
 import org.martincorp.Model.Group;
 import org.martincorp.Model.Message;
 
+import javafx.application.Platform;
+import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
-import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.ScrollEvent;
-import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.GridPane;
+import javafx.scene.paint.Paint;
+import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.FileChooser.ExtensionFilter;
@@ -67,6 +75,7 @@ public class ChatGridController {
     //Equivalent to main method when the controller is started:
     @FXML
     public void initialize(){
+        chatGrid.setPrefWidth(900);
         fileDialog.setTitle("Seleccione un archivo");
         fileDialog.getExtensionFilters().add(new ExtensionFilter("All Files", "*.*"));
     }
@@ -95,7 +104,6 @@ public class ChatGridController {
 
     //Methods:
     public void extSetup(int newId, boolean mode){
-        // chatUsers = db.getChatUser(newId, mode);
         //DONE: create static list that saves the contents of the file bottom bar.
         Iterator<BarMessage> ite = messageBar.iterator();
 
@@ -124,8 +132,8 @@ public class ChatGridController {
                         }
                         else{
                             chat = null;
-                            // group = db.getGroupById(newId);
-                        }
+                            group = db.getGroupById(newId);
+                        }                       
 
                         messageText.setText(message.getMessage());
                         fileBut.setText(message.getFileName());
@@ -141,10 +149,12 @@ public class ChatGridController {
         //Decide what we have to load:
         /*
          * Ok, so how we force if the program will load more?
-         * * Do a check here about it there's more messages to load of how many?
+         * * Do a check here about if there's more messages to load of how many?
          * * Or do the check when processing the load?
          * (All this also implies that we should disable the load when no more messages can be loaded so we aren't constantly querying and executing code)
          */
+        chatUsers = db.getChatUsers(newId, mode); 
+
         if(mode){
             loadMessages(db.getMessages(newId, mode, 0));
             offset = 25;
@@ -158,36 +168,55 @@ public class ChatGridController {
     //TODO: Just get the messages and print them? Maybe the dynamic grid should be a unified method to avoid duplicate code
       //Alse should you start from last to first (newest to oldest) so it's easier to know where to put new rows in the grid? or would the reverse be the same?
     private void loadMessages(List<Message> mess){
-        Collections.sort(mess, Collections.reverseOrder());
+        //addColumn/addRow doesn't work right with a given number (0) so we need a counter to add to the correct row.
         Iterator<Message> ite = mess.iterator();
 
         while(ite.hasNext()){
             Message message = ite.next();
-            BorderPane messBox = new BorderPane();
+            boolean read = false;
+
             GridPane messGrid = new GridPane();
-            AnchorPane emptyBox = new AnchorPane();
+            messGrid.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+            GridPane.setMargin(messGrid, new Insets(0, 0, 0, 6));
+
+            Label startLabel = new Label("");
+            startLabel.setWrapText(true);
+            messGrid.add(startLabel, 0, 0);
+            GridPane.setMargin(startLabel, new Insets(2.5, 5, 2.5, 5));
+            
+            BorderPane emptyBox = new BorderPane();
 
             LocalDateTime aproxNow = LocalDateTime.ofEpochSecond(System.currentTimeMillis() / 1000, 0, OffsetDateTime.now().getOffset());
 
-            if(message.getFilename() != null){
-                Label fileText = new Label(message.getFilename());
-                ImageView fileView = new ImageView();
-                messBox.setTop(new Label(message.getFilename()));
-                messBox.setCenter(new ImageView());
+            if(!message.getFilename().equals("empty")){
+                Label fileLabel = new Label(message.getFilename());
+                fileLabel.setFont(GUI.segoe);
+                fileLabel.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+                fileLabel.setWrapText(true);
+                GridPane.setMargin(fileLabel, new Insets(2.5, 5, 2.5, 5));
+
+                messGrid.addRow(messGrid.getRowCount(), fileLabel);
             }
+
             if(message.getMessage() != null){
-                Label messText = new Label(message.getMessage());
+                Label messLabel = new Label(message.getMessage());
+                messLabel.setFont(Font.loadFont(getClass().getResourceAsStream("/Font/Segoe UI.ttf"), 15));
+                messLabel.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+                messLabel.setWrapText(true);
+                GridPane.setMargin(messLabel, new Insets(2.5, 5, 2.5, 5));
 
-
-                messBox.setBottom(messText);
+                messGrid.addRow(messGrid.getRowCount(), messLabel);
             }
-
             
             LocalDateTime messDate = message.getSendTime();
             Label timeLabel = new Label();
+            timeLabel.setFont(Font.loadFont(getClass().getResourceAsStream("/Font/Segoe UI Italic.ttf"), 10));
+            timeLabel.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+            timeLabel.setWrapText(true);
+            GridPane.setMargin(timeLabel, new Insets(2.5, 5, 5, 5));
 
             if(Math.abs(Duration.between(messDate, aproxNow).toDays()) > 365){
-                timeLabel.setText(longerFormatter.format(messDate));
+                timeLabel.setText(longerFormatter.format(messDate)); 
             }
             else if(Math.abs(Duration.between(messDate, aproxNow).toDays()) > 1){
                 timeLabel.setText(longFormatter.format(messDate)); 
@@ -196,14 +225,67 @@ public class ChatGridController {
                 timeLabel.setText(shortFormatter.format(messDate));
             }
 
-            if(message.getSender() == db.user){
-                messBox.setRight(timeLabel);
-            }
-            else{
-                messBox.setLeft(timeLabel);
-            }
+            messGrid.addRow(messGrid.getRowCount(), timeLabel);
+            
+            //Find sender employee & align texts. 
+              //Loop through all employee of active chat/group
+            for(Employee emp : chatUsers){
+                if(message.getSender() == emp.getId()){
+                    //Determine if the sender is the user or another employee
+                    boolean isUser = message.getSender() == db.user ? true : false;
 
-            chatGrid.addRow(1, message.getSender() == db.user ? emptyBox : messBox, message.getSender() == db.user ? messBox : emptyBox);
+                    if(isUser){
+                        messGrid.setBackground(new Background(new BackgroundFill(Paint.valueOf("A48EFF"), new CornerRadii(7), new Insets(0))));
+                        messGrid.setAlignment(Pos.CENTER_RIGHT);
+                    }
+                    else{
+                        messGrid.setBackground(new Background(new BackgroundFill(Paint.valueOf("C8BBFF"), new CornerRadii(7), new Insets(0))));
+                        // messGrid.setAlignment(Pos.CENTER_LEFT);
+                    }
+                    //WHY DOES ALIGNING NOTHING???? FUCK OFF
+                      //gridPane.setAlignment works for general, maybe add textAlign for the labels (doesn't sound good)
+                    //Also why doesn't chatGrid nor scrollPane expand??
+                      //Is scrollGrid maybe responsible??
+
+                    //Iterate through the message nodes
+                    ObservableList<Node> childs = messGrid.getChildren();
+                    for(Node label : childs){
+                        //If the node is the first AKA the nameLabel...
+                        if(GridPane.getRowIndex(label) == 0){
+                            //...and the sender is not the user, set the label text, font & alignment.
+                            if(!isUser){
+                                ((Label) label).setText(emp.getAlias());
+                                ((Label) label).setFont(Font.loadFont(getClass().getResourceAsStream("/Font/Segoe UI.ttf"), 15));
+                                ((Label) label).setWrapText(true);
+                                ((Label) label).setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+                                ((Label) label).setAlignment(Pos.CENTER_LEFT);
+                            }
+                            else{
+                                ((Label) label).setFont(new Font("Segoe UI", 0));
+                            }
+                        }
+                        else{
+                            if(isUser){
+                                ((Label) label).setAlignment(Pos.CENTER_RIGHT);
+                            }
+                            else{
+                                ((Label) label).setAlignment(Pos.CENTER_LEFT);
+                            }
+                        }
+                    }
+
+                    //Lastly depending on who's the sender set messGrid left or right.
+                    if(isUser){
+                        chatGrid.addRow(chatGrid.getRowCount(), emptyBox, messGrid);
+                    }
+                    else{                     
+                        chatGrid.addRow(chatGrid.getRowCount(), messGrid, emptyBox);
+                    }
+
+                    //Stop the loop, no more iterations needed.
+                    break;
+                }
+            }
         }
     }
 
@@ -227,6 +309,7 @@ public class ChatGridController {
             GUI.launchMessage(5, "Sin destinatario", "No se ha seleccionado ningún chat o\ngrupo al que enviar este mensaje.");
         }
     }
+
 
     public void setStage(Stage w){
         this.window = w;

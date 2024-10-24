@@ -68,7 +68,7 @@ public class ChatScrollController {
         //Sorting
           //If there are chats for this user, sort by time and then reverse it for newer to older, else add a placeholder message.
         if(!(messList.size() > 0)){
-            messList.add(new Message(1, false, 1, 1, "No hay chats recientes", null, false, aproxNow));
+            messList.add(new Message(1, false, 1, "No hay chats recientes", null, false, aproxNow, false));
         }
 
         //Rendering
@@ -99,7 +99,7 @@ public class ChatScrollController {
                     nameLabel.setText(g.getName());
                 }
 
-                nameLabel.setFont(Font.font ("Segoe UI", FontWeight.BOLD, 15.0));
+                nameLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 15.0));
 
                 //Timestamp of the last message and comparison to the previously declared timestamp (now).
                 LocalDateTime messDate = m.getSendTime();
@@ -184,27 +184,4 @@ public class ChatScrollController {
             GUI.launchMessage(2, "Error de interfaz", "No se ha podido cargar el listado de chats.");
         }
     }
-
-    /* public void showChat(int chatId, boolean chatMode){
-        try{
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Fxml/chatGrid.fxml"));
-            Parent root = loader.load();
-
-            ChatGridController cGrdCont = loader.getController();
-            cGrdCont.setStage(window);
-
-            Platform.runLater( () -> TemplateController.cleanRight());
-            // Platform.runLater( () -> TemplateController.setRight(root));
-
-            cGrdCont.extSetup(chatId, chatMode);
-        }
-        catch(IOException ioe){
-            ioe.printStackTrace();
-            GUI.launchMessage(2, "Error de interfaz", "No se ha modido cargar la vista seleccionada del programa.\n\n" + ioe.getMessage());
-        }
-        catch(IllegalStateException ise){
-            ise.printStackTrace();
-            GUI.launchMessage(2, "Error de interfaz", "No se ha modido cargar la vista seleccionada del programa.\n\n" + ise.getMessage());
-        }
-    } */
 }

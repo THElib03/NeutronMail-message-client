@@ -44,21 +44,19 @@ public class MessagerActions {
 
     private final String USER_GROUPS = "SELECT * FROM publicgroup WHERE grp_id IN (SELECT gru_group FROM groupuser WHERE gru_user = ?)";
     private final String GROUP_USERS = "SELECT * FROM employee JOIN `active` ON (employee.emp_id=`active`.act_emp) WHERE emp_id IN (SELECT gru_user FROM groupuser WHERE gru_group = ?)";
-    private final String GROUP_BY_ID = "SELECT";
+    private final String GROUP_BY_ID = "SELECT grp_id, grp_name, grp_creationDate FROM publicgroup WHERE grp_id = ?";
     private final String GROUP_BY_NAME = "SELECT";
     private final String NEW_GROUP = "INSERT INTO certificate VALUES (?, 1, ?, ?)";    
 
     private final String CHAT = "SELECT * FROM chat WHERE chat_id = ?";
-    private final String USER_CHATS = "SELECT * FROM chat WHERE chat_user1 = ? OR chat_user2 = ?";
+    private final String CHAT_USERS = "SELECT emp_id, emp_fname, emp_lname, emp_sDate, emp_eDate, emp_alias, emp_email FROM employee e LEFT JOIN groupuser g ON (e.emp_id = g.gru_user) LEFT JOIN chat c1 ON (e.emp_id = c1.chat_user1) LEFT JOIN chat c2 ON (e.emp_id = c2.chat_user2) WHERE ";
 
     private final String SEND_MESS = "INSERT INTO message VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0)";
-    private final String CHAT_MESS = "SELECT mes_id, mes_chat, mes_sender, mes_message, mes_filename, IF(mes_file == 'empty', FALSE, TRUE) AS hasFile, mes_unread FROM message WHERE mes_chat = ? ORDER BY mes_id DESC LIMIT 25 OFFSET ? ";
-    private final String GROUP_MESS = "SELECT mes_id, mes_group, mes_sender, mes_message, mes_filename, IF(mes_file == 'empty', FALSE, TRUE) AS hasFile, mes_unread FROM message WHERE mes_group = ? ORDER BY mes_id DESC LIMIT 25 OFFSET ?";
+    private final String CHAT_MESS = "SELECT mes_chat, mes_sender, mes_message, mes_filename, IF(mes_file = 'empty', FALSE, TRUE) AS hasFile, mes_sendTime, mes_status FROM message WHERE mes_chat = ? ORDER BY mes_id ASC LIMIT 25 OFFSET ? ";
+    private final String GROUP_MESS = "SELECT mes_group, mes_sender, mes_message, mes_filename, IF(mes_file = 'empty', FALSE, TRUE) AS hasFile, mes_sendTime, mes_status FROM message WHERE mes_group = ? ORDER BY mes_id ASC LIMIT 25 OFFSET ?";
     private final String CHAT_AVAILABLE = "SELECT COUNT(*) FROM chat WHERE mes_chat = ? ORDER BY mes_id LIMIT 25 OFFSET ?";
     private final String GROUP_AVAILABLE = "SELECT COUNT(*) FROM chat WHERE mes_group = ? ORDER BY mes_id LIMIT 25 OFFSET ?";
     private final String LAST_MESS = "WITH chat_messages AS(SELECT CASE WHEN mes_chat IS NULL THEN FALSE ELSE TRUE END AS `mode`, mes_chat, mes_group, mes_sender, mes_message, mes_filename, mes_sendTime, COUNT(CASE WHEN mes_status = 0 THEN 1 ELSE NULL END) AS unread_mes, ROW_NUMBER() OVER (PARTITION BY mes_group ORDER BY mes_sendTime DESC) AS rn FROM message GROUP BY mes_chat, mes_group, mes_sender, mes_message, mes_filename, mes_sendTime) SELECT `mode`, mes_chat, mes_group, mes_sender, mes_message, mes_filename, mes_sendTime, unread_mes, IF(`mode` = 0, grp_name, NULL) AS grp_name, emp_alias, CONCAT_WS(' ', emp_fname, emp_lname) FROM chat_messages LEFT JOIN publicgroup ON (mes_group = publicgroup.grp_id) LEFT JOIN employee ON (mes_sender = employee.emp_id) LEFT JOIN chat ON (mes_chat = chat.chat_id) WHERE (mes_group IN (SELECT gru_group FROM groupuser WHERE gru_user = ?) OR (chat_user1 = ? OR chat_user2 = ?)) AND rn = 1 GROUP BY mes_chat, mes_group, mes_sender, mes_message, mes_filename, mes_sendTime";
-    private final String UNREAD_CHAT = "SELECT COUNT(mes_status) FROM message WHERE mes_status = 0 AND mes_chat = ?";
-    private final String UNREAD_GROUP = "SELECT COUNT(mes_status) FROM message WHERE mes_status = 0 AND mes_group = ?";
     private final String NEW_MESS = "INSERT INTO message(mes_chat, mes_sender, mes_receiver, mes_filename, mes_message) VALUES(?, ?, ?, ?, ?)";
 
     //Builder:
@@ -162,8 +160,36 @@ public class MessagerActions {
     }
 
     /**
-     * Searches for the chat of a given id.
-     * @since 1.0
+     * Searches for the group that matches the given ID.
+     * @since 0.240924
+     * @param id ID of the Group which will be retrieved
+     * @return A Group object whose ID matches the one given
+     */
+    public Group getGroupById(int id){
+        Group grp = new Group();
+        
+        try{
+            PreparedStatement grpSta = bridge.conn.prepareStatement(GROUP_BY_ID);
+            grpSta.setInt(1, id);
+            ResultSet res = grpSta.executeQuery();
+
+            while(res.next()){
+                grp.setId(res.getInt("1"));
+                grp.setName(res.getString(2));
+                grp.setOwner(res.getInt(3));
+            }
+        }
+        catch(SQLException sqle){
+            sqle.printStackTrace();
+            GUI.launchMessage(id, "Error de base", "");
+        }
+
+        return grp;
+    }
+    
+    /**
+     * Searches for the Chat that matches a given ID.
+     * @since 0.130525
      * @param id id of the chat which will be accesed
      * @return a Chat object whose id matches the one given as a parameter
      */
@@ -187,20 +213,39 @@ public class MessagerActions {
     }
 
     /**
-     * The name is confusing but is to look for a the other employee you're talking to in a chat.
+     * Querys the database for the user or users related to a chat or group.
      * @since 1.0
      * @param id id of the chat which we need the other employee
      * @return returns the employee of the given chat id
      */
-    public Employee getChatUser(int id){
-        Chat chat = getChatById(id);
-            
-        if(chat.getUser1() != user){
-            return getEmployeeById(chat.getUser1());
+    public ArrayList<Employee> getChatUsers(int id, boolean mode){
+        ArrayList<Employee> emps = new ArrayList<Employee>();
+        PreparedStatement userSta;
+
+        try{
+            if(mode){
+                userSta = bridge.conn.prepareStatement(CHAT_USERS + "c1.chat_id = ? or c2.chat_id = ? GROUP BY emp_id");
+                userSta.setInt(1, id);
+                userSta.setInt(2, id);
+            }
+            else{
+                userSta = bridge.conn.prepareStatement(CHAT_USERS + "gru_group = ? GROUP BY emp_id");
+                userSta.setInt(1, id);
+            }
+            ResultSet res = userSta.executeQuery();
+
+            while(res.next()){
+                Employee e = new Employee(res.getInt(1), res.getString(2) + " " + res.getString(3), res.getDate(4), res.getDate(5), res.getString(6), res.getString(7), false);
+                emps.add(e);
+            }
         }
-        else{
-            return getEmployeeById(chat.getUser2());
+        catch(SQLException sqle){
+            sqle.printStackTrace();
+            GUI.launchMessage(2, "Error de base de datos", "Ha ocurrido un error durante la\ncomunicación con la base de datos.");
+            bridge.checkConnection(true);
         }
+        
+        return emps;
     }
 
     public boolean sendMessage(int chat, boolean mode, String message, String filename, File file, boolean hash){
@@ -269,21 +314,15 @@ public class MessagerActions {
 
     public List<Message> getMessages(int id, boolean mode, int offset) {
         List<Message> messages = new ArrayList<Message>();
-        PreparedStatement messSta;
 
         try{
-            if(mode){
-                messSta = MessagerBridge.conn.prepareStatement(CHAT_MESS);
-            }
-            else{
-                messSta = MessagerBridge.conn.prepareStatement(GROUP_MESS);
-            }
+            PreparedStatement messSta = bridge.conn.prepareStatement(mode ? CHAT_MESS : GROUP_MESS);
             messSta.setInt(1, id);
             messSta.setInt(2, offset);
             ResultSet res = messSta.executeQuery();
 
-            while(res.next()) {
-                messages.add(new Message(mode ? res.getInt(2) : res.getInt(3), mode, res.getInt(4), res.getInt(5), res.getString(6), res.getString(7), res.getBoolean(8), res.getTimestamp(9).toLocalDateTime()));
+            while(res.next()){
+                messages.add(new Message(res.getInt(1), mode, res.getInt(2), res.getString(3), res.getString(4), res.getBoolean(5), res.getTimestamp(6).toLocalDateTime(), res.getBoolean(7)));
             }
         }
         catch(SQLException sqle){
@@ -293,17 +332,15 @@ public class MessagerActions {
         }
 
         if(messages.size() == 0){
-            messages.add(new Message(1, mode, 1, 1, "No se ha mandado ningún mensaje aún", null, false, LocalDateTime.now()));
+            messages.add(new Message(1, mode, 1, "No se ha mandado ningún mensaje aún", null, false, LocalDateTime.now(), false));
         }
 
         return messages;
     }
 
     public boolean isMessageAvailable(int id, boolean mode, int offset){
-        PreparedStatement avaSta;
-
         try{
-            avaSta = bridge.conn.prepareStatement(mode ? CHAT_AVAILABLE : GROUP_AVAILABLE);
+            PreparedStatement avaSta = bridge.conn.prepareStatement(mode ? CHAT_AVAILABLE : GROUP_AVAILABLE);
             avaSta.setInt(1, id);
             avaSta.setInt(2, offset);
             ResultSet res = avaSta.executeQuery();
@@ -383,15 +420,12 @@ public class MessagerActions {
 
                 if(!res.getBoolean(1)){
                     lastGroup.setId(res.getInt(3));
-                    System.out.println(res.getString(9));
                     lastGroup.setName(res.getString(9));
                     lastList.add(lastGroup);
                 }
 
                 lastList.add(res.getInt(8));
             }
-
-            System.out.println("adffafaf");
         }
         catch(SQLException sqle){
             sqle.printStackTrace();
@@ -402,4 +436,3 @@ public class MessagerActions {
         return lastList;
     }
 }
-

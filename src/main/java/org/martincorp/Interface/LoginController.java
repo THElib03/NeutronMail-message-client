@@ -1,8 +1,6 @@
 package org.martincorp.Interface;
 
 import org.martincorp.Database.LoggerActions;
-import org.martincorp.Database.LoggerBridge;
-import org.martincorp.Database.MessagerBridge;
 
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -84,7 +82,7 @@ public class LoginController {
     }
     
     //Misc. methods:
-    public static void setStage(Stage w){
+    public void setStage(Stage w){
         window = w;
     }
 

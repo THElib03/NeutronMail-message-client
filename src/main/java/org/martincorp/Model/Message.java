@@ -8,8 +8,8 @@ import java.time.LocalDateTime;
  */
 public class Message implements Comparable<Message>{
     //Variables:
-    private int chat, sender, receiver;
-    private boolean mode, hasFile;
+    private int chat, sender;
+    private boolean mode, hasFile, status;
     private String message, filename;
     private LocalDateTime sendTime;
 
@@ -20,24 +20,24 @@ public class Message implements Comparable<Message>{
      * @since 1.0
      * @param c chat ID the message belongs to
      * @param mode whether the mesage belongs to a personal chat or a group
-     * @param s employee ID of the message sender
-     * @param r employee ID of the message receiver
+     * @param sen employee ID of the message sender
      * @param m message string sent
      * @param h whether the message comes with a file or not
      * @param fn filename of the file sent
      * @param t date and time when the message was sent
+     * @param sta whether the message has been read or not
      */
-    public Message(int c, boolean mode, int s, int r, String m, String fn, boolean h, LocalDateTime t){
+    public Message(int c, boolean mode, int sen, String m, String fn, boolean h, LocalDateTime t, boolean sta){
         //DONE: rewrite Message in the DB to have a collumn for a string written as the message body or text, the should be optional now and this would allow proper comunication
           // i can't just name the file like the text.
         this.chat = c;
         this.mode = mode;
-        this.sender = s;
-        this.receiver = r;
+        this.sender = sen;
         this.message = m;
         this.filename = fn;
         this.hasFile = h;
         this.sendTime = t;
+        this.status = sta;
     }
 
     /**
@@ -62,10 +62,6 @@ public class Message implements Comparable<Message>{
 
     public int getSender(){
         return sender;
-    }
-
-    public int getReceiver(){
-        return receiver;
     }
 
     public String getMessage(){
@@ -94,10 +90,6 @@ public class Message implements Comparable<Message>{
 
     public void setSender(int s){
         this.sender = s;
-    }
-
-    public void setReceiver(int r){
-        this.receiver = r;
     }
 
     public void setMessage(String m){
