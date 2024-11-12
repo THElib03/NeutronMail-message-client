@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.security.DigestInputStream;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -51,7 +52,7 @@ public class MessagerActions {
     private final String CHAT = "SELECT * FROM chat WHERE chat_id = ?";
     private final String CHAT_USERS = "SELECT emp_id, emp_fname, emp_lname, emp_sDate, emp_eDate, emp_alias, emp_email FROM employee e LEFT JOIN groupuser g ON (e.emp_id = g.gru_user) LEFT JOIN chat c1 ON (e.emp_id = c1.chat_user1) LEFT JOIN chat c2 ON (e.emp_id = c2.chat_user2) WHERE ";
 
-    private final String SEND_MESS = "INSERT INTO message VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0)";
+    private final String SEND_MESS = "INSERT INTO message VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0)";
     private final String CHAT_MESS = "SELECT mes_chat, mes_sender, mes_message, mes_filename, IF(mes_file = 'empty', FALSE, TRUE) AS hasFile, mes_sendTime, mes_status FROM message WHERE mes_chat = ? ORDER BY mes_id ASC LIMIT 25 OFFSET ? ";
     private final String GROUP_MESS = "SELECT mes_group, mes_sender, mes_message, mes_filename, IF(mes_file = 'empty', FALSE, TRUE) AS hasFile, mes_sendTime, mes_status FROM message WHERE mes_group = ? ORDER BY mes_id ASC LIMIT 25 OFFSET ?";
     private final String CHAT_AVAILABLE = "SELECT COUNT(*) FROM chat WHERE mes_chat = ? ORDER BY mes_id LIMIT 25 OFFSET ?";
@@ -174,7 +175,7 @@ public class MessagerActions {
             ResultSet res = grpSta.executeQuery();
 
             while(res.next()){
-                grp.setId(res.getInt("1"));
+                grp.setId(res.getInt(1));
                 grp.setName(res.getString(2));
                 grp.setOwner(res.getInt(3));
             }
@@ -189,7 +190,7 @@ public class MessagerActions {
     
     /**
      * Searches for the Chat that matches a given ID.
-     * @since 0.130525
+     * @since 0.130524
      * @param id id of the chat which will be accesed
      * @return a Chat object whose id matches the one given as a parameter
      */
@@ -248,12 +249,27 @@ public class MessagerActions {
         return emps;
     }
 
+    /**
+     * Inserts a new message sent for a certain Chat/Group.
+     * @since 0.221024
+     * @param chat Chat/Group id where the message was sent
+     * @param mode indicates whether chat belongs to a Chat or Group
+     * @param message message string that can be sent
+     * @param filename filename (including file extension) of the file that can be sent
+     * @param file File object that can be sent
+     * @param hash whether the message variable includes a hash value
+     * @return true if the SQL update works, false otherwise
+     */
     public boolean sendMessage(int chat, boolean mode, String message, String filename, File file, boolean hash){
-        PreparedStatement messSta; 
-        // byte[] newHash = new byte[];
-
         try{
-            messSta = bridge.conn.prepareStatement(SEND_MESS);
+            PreparedStatement messSta = bridge.conn.prepareStatement(SEND_MESS); 
+            byte[] messHash = new byte[64];
+            byte[] fileHash = new byte[64];
+
+            if(hash){
+                messHash = enc.hash(message.getBytes());
+            }
+        
             //mes_chat & mes_group
             if(mode){
                 messSta.setInt(1, chat);
@@ -263,28 +279,29 @@ public class MessagerActions {
                 messSta.setNull(1, Types.INTEGER);
                 messSta.setInt(2, chat);
             }
+
             //mes_sender
             messSta.setInt(3, user);
-            //mes_receiver
-            if(mode){
-                // messSta.setInt(4, getChatUser(chat).getId());
-            }
-            else{
-                messSta.setNull(4, Types.INTEGER);
-            }
+
             //mes_message
             if(!message.equals("")){
-                messSta.setString(5, message);
+                String mess = message;
+                if(hash){
+                    messHash = enc.hash(message.getBytes());
+                    mess = messHash.toString() + message;
+                }
+
+                messSta.setString(5, mess);
             }
             else{
                 messSta.setNull(5, Types.VARCHAR);
             }
+
             //mes_filename & mes_file
             if(filename != null && file != null){
-                if(hash){
-                    byte[] newHash = enc.hash(Files.readAllBytes(file.toPath()));
-                    System.out.println(newHash);
-                }
+                
+
+
                 messSta.setString(6, filename);
                 // messSta.setBinaryStream(7, new ByteArrayInputStream(file), file.length);
             }
@@ -292,6 +309,7 @@ public class MessagerActions {
                 messSta.setNull(6, Types.VARCHAR);
                 messSta.setNull(7, Types.BLOB);
             }
+
             //mes_hash
             messSta.setBoolean(8, hash);
 
@@ -305,11 +323,11 @@ public class MessagerActions {
             bridge.checkConnection(true);
             return false;
         }
-        catch(IOException ioe){
+        /* catch(IOException ioe){
             ioe.printStackTrace();
             GUI.launchMessage(2, "", "");
             return false;
-        }
+        } */
     }
 
     public List<Message> getMessages(int id, boolean mode, int offset) {

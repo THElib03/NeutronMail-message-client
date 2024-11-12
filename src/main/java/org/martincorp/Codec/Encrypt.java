@@ -76,6 +76,20 @@ public class Encrypt {
         return decoded;
     }
 
+    /* More advanced hasher for files */
+    /* public byte[] hashFile(String file){
+        try{
+            InputStream is = new FileInputStream(file);
+
+            return new byte[4];
+        }
+        catch(IOException ioe){
+            ioe.printStackTrace();
+            GUI.launchMessage(2, "Error de lectura", "Ha ocurrido un error al intentar leer el archivo.\n\n" + ioe.getMessage());
+            return null;
+        }
+    } */
+
     /* Hashing & Salting*/
     /**
      * Returns a random 0salt to be used to hash a password (provided by 'assylias' from stackoverflow.com, check project documentation for links and info).

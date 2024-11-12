@@ -126,15 +126,6 @@ public class ChatGridController {
                         messageBar.add(new BarMessage(chatMode ? chat.getId() : group.getId(), messageText.getText(), file != null ? file.getName() : null, file != null ? file.getAbsolutePath() : null, mode, verifCheck.isSelected()));
                     
                         //Paso 7: cargar la nueva barra
-                        if(mode){
-                            chat = db.getChatById(newId);
-                            group = null;
-                        }
-                        else{
-                            chat = null;
-                            group = db.getGroupById(newId);
-                        }                       
-
                         messageText.setText(message.getMessage());
                         fileBut.setText(message.getFileName());
                         file = new File(message.getFilePath());
@@ -145,6 +136,16 @@ public class ChatGridController {
                 //Si? Pues no se carga nada
             }
         }
+
+        chatMode = mode;
+        if(mode){
+            chat = db.getChatById(newId);
+            group = null;
+        }
+        else{
+            chat = null;
+            group = db.getGroupById(newId);
+        } 
 
         //Decide what we have to load:
         /*
@@ -289,27 +290,130 @@ public class ChatGridController {
         }
     }
 
+    private void printMessage(){
+        Platform.runLater(() -> {
+            GridPane messGrid = new GridPane();
+            messGrid.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+            GridPane.setMargin(messGrid, new Insets(0, 0, 0, 6));
+
+            Label startLabel = new Label("");
+            startLabel.setWrapText(true);
+            messGrid.add(startLabel, 0, 0);
+            GridPane.setMargin(startLabel, new Insets(2.5, 5, 2.5, 5));
+            
+            BorderPane emptyBox = new BorderPane();
+
+            LocalDateTime aproxNow = LocalDateTime.ofEpochSecond(System.currentTimeMillis() / 1000, 0, OffsetDateTime.now().getOffset());
+
+            if(file != null){
+                Label fileLabel = new Label(file.getName());
+                fileLabel.setFont(GUI.segoe);
+                fileLabel.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+                fileLabel.setWrapText(true);
+                GridPane.setMargin(fileLabel, new Insets(2.5, 5, 2.5, 5));
+
+                messGrid.addRow(messGrid.getRowCount(), fileLabel);
+            }
+
+            if(!messageText.getText().equals("")){
+                Label messLabel = new Label(messageText.getText());
+                messLabel.setFont(Font.loadFont(getClass().getResourceAsStream("/Font/Segoe UI.ttf"), 15));
+                messLabel.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+                messLabel.setWrapText(true);
+                GridPane.setMargin(messLabel, new Insets(2.5, 5, 2.5, 5));
+
+                messGrid.addRow(messGrid.getRowCount(), messLabel);
+            }
+
+            LocalDateTime time = LocalDateTime.ofEpochSecond(System.currentTimeMillis() / 1000, 0, OffsetDateTime.now().getOffset());
+            Label timeLabel = new Label(shortFormatter.format(time));
+            timeLabel.setFont(Font.loadFont(getClass().getResourceAsStream("/Font/Segoe UI Italic.ttf"), 10));
+            timeLabel.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+            GridPane.setMargin(timeLabel, new Insets(2.5, 5, 2.5, 5));
+
+            messGrid.addRow(messGrid.getRowCount(), timeLabel);
+
+            Label loadingLabel = new Label("Enviando... ○");
+            loadingLabel.setFont(Font.loadFont(getClass().getResourceAsStream("/Font/Segoe UI.ttf"), 12));
+            loadingLabel.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+            loadingLabel.setWrapText(true);
+            GridPane.setMargin(loadingLabel, new Insets(2.5, 5, 5, 5));
+
+            messGrid.addRow(messGrid.getRowCount(), loadingLabel);
+
+            messGrid.setBackground(new Background(new BackgroundFill(Paint.valueOf("A48EFF"), new CornerRadii(7), new Insets(0))));
+            messGrid.setAlignment(Pos.CENTER_RIGHT);
+
+            ObservableList<Node> childs = messGrid.getChildren();
+            for(Node label : childs){
+                if(GridPane.getRowIndex(label) == 0){
+                    ((Label) label).setFont(new Font("Segoe UI", 0));
+                }
+                else{
+                    ((Label) label).setAlignment(Pos.CENTER_RIGHT);
+                }
+            }
+
+            chatGrid.addRow(chatGrid.getRowCount(), emptyBox, messGrid); 
+        });
+    }
+
+    private void editSentMessage(String newText){
+
+    }
+
     @FXML private void selectFile(){
         file = fileDialog.showOpenDialog(window);
         
-        if(file.length() <= 2147481599){
+        if(file.length() <= 268435456){
             fileBut.setText(file.getName());
         }
         else{
             file = null;
-            GUI.launchMessage(5, "Tamaño excesivo", "El archivo seleccionado supera el límite de 2 gigabytes.");
+            GUI.launchMessage(5, "Tamaño excesivo", "El archivo seleccionado supera el límite de 256 megabytes.");
         }
     }
 
     @FXML private void sendMessage(){
-        if(chat.getId() != 1){
-            db.sendMessage(chatMode ? chat.getId() : group.getId(), chatMode, !messageText.getText().equals("") ? messageText.getText() : null, file != null ? file.getName() : null, file != null ? file : null, verifCheck.isSelected() ? true : false);
-        }
-        else{
-            GUI.launchMessage(5, "Sin destinatario", "No se ha seleccionado ningún chat o\ngrupo al que enviar este mensaje.");
-        }
-    }
+        Task<Boolean> uploadTask = new Task<Boolean>(){
+            @Override
+            protected Boolean call() throws Exception {
+                printMessage();
 
+                if((chatMode ? chat.getId() : group.getId()) != 1){
+                    System.out.println(messageText.getText());
+                    /* if(db.sendMessage(chatMode ? chat.getId() : group.getId(), chatMode, !messageText.getText().equals("") ? messageText.getText() : "", file != null ? file.getName() : null, file != null ? file : null, verifCheck.isSelected() ? true : false)){
+                        return true;
+                    }
+                    else{
+                        return false;
+                    } */
+                   return true;
+                }
+                else{
+                    GUI.launchMessage(5, "Sin destinatario", "No se ha seleccionado ningún chat o\ngrupo al que enviar este mensaje.");
+                    return false;
+                }
+            }
+
+            @Override
+            protected void succeeded(){
+
+            }
+
+            @Override 
+            protected void failed(){
+
+            }
+
+            @Override
+            protected void cancelled(){
+
+            }
+        };
+
+        new Thread(uploadTask).start();
+    }
 
     public void setStage(Stage w){
         this.window = w;
